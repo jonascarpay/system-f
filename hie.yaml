@@ -1,0 +1,16 @@
+cradle:
+  multi:
+    # - path: "ignore/"
+    #   config: {cradle: {none: }}
+
+    - path: "src"
+      config: {cradle: {cabal: {component: "lib:systemf"}}}
+
+    - path: "app"
+      config: {cradle: {cabal: {component: "systemf:systemf-exe"}}}
+
+    - path: "test"
+      config: {cradle: {cabal: {component: "systemf:systemf-test"}}}
+
+    - path: "bench"
+      config: {cradle: {cabal: {component: "systemf:systemf-bench"}}}
