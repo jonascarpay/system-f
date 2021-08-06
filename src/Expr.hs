@@ -1,11 +1,17 @@
-module Expr
-  ( someFunc,
-  )
-where
+{-# LANGUAGE DeriveTraversable #-}
+{-# LANGUAGE TemplateHaskell #-}
 
-data Expr var = Expr var
+module Expr where
 
-data Value = Value
+data Atom
+  = AInt Int
+  | ABool Bool
+  deriving (Eq, Show)
 
-someFunc :: IO ()
-someFunc = putStrLn "hey"
+data Expr var
+  = Var var
+  | Atom Atom
+  | Lam (Expr (Maybe var))
+  | App (Expr var) (Expr var)
+  | Plus (Expr var) (Expr var)
+  deriving (Eq, Show, Functor, Foldable, Traversable)
