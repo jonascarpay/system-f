@@ -14,7 +14,7 @@ assertEitherWith f = either (assertFailure . f) pure
 assertParse :: Parser a -> Text -> IO a
 assertParse p t = assertEitherWith errorBundlePretty $ parse p "" t
 
-assertEval :: Expr Ident -> IO Value
+assertEval :: Expr () Ident -> IO Value
 assertEval = assertEitherWith (mappend "evaluation error: ") . eval
 
 it9 :: String -> Text -> Spec

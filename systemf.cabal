@@ -36,13 +36,17 @@ library
     Eval
     Expr
     Parse
+    TypeCheck
 
   build-depends:
     , containers
     , megaparsec
+    , microlens-platform
     , mtl
     , parser-combinators
     , text
+    , union-find
+    , validation-selective
 
 executable systemf-exe
   import:         common-options
