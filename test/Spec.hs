@@ -1,10 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 import Control.Monad
+import Data.Text (Text)
 import Expr
+import Parse
 import Rebound
 import Test.HUnit (assertFailure)
 import Test.Hspec
+import Text.Megaparsec
 import TypeCheck
 
 assertEither :: Either String a -> IO a
@@ -13,24 +16,47 @@ assertEither = assertEitherWith id
 assertEitherWith :: (err -> String) -> Either err a -> IO a
 assertEitherWith f = either (assertFailure . f) pure
 
-assertClosed :: (Show t, Show v) => Expr t v -> IO (Expr t' v')
-assertClosed = assertEither . closeV >=> assertEither . closeT
+assertClosedExpr :: (Show t, Show v) => Expr t v -> IO (Expr t' v')
+assertClosedExpr = assertEither . closeV >=> assertEither . closeT
 
-assertTypClosed :: Show t => Type t -> IO (Type t')
-assertTypClosed = assertEitherWith (mappend "unbound type variables in expected type: " . show) . closed
+assertClosedTyp :: Show t => Type t -> IO (Type t')
+assertClosedTyp = assertEitherWith (mappend "unbound type variables in expected type: " . show) . closed
 
-hasType :: Expr Char Char -> Type Char -> Expectation
+assertParse :: Parser a -> Text -> IO a
+assertParse p text = assertEitherWith errorBundlePretty $ parse p "" text
+
+assertParseExpr :: Text -> IO (Expr Ident Ident)
+assertParseExpr = assertParse exprParser
+
+assertParseType :: Text -> IO (Type Ident)
+assertParseType = assertParse typeParser
+
+parsesTo :: (Eq a, Show a) => Parser a -> Text -> a -> Expectation
+parsesTo p text exp = do
+  got <- assertParse p text
+  got `shouldBe` exp
+
+parsesToTyp :: Text -> Type Ident -> Expectation
+parsesToTyp = parsesTo typeParser
+
+hasType :: Expr Ident Ident -> Type Ident -> Expectation
 hasType expr typ = do
-  expr' <- assertClosed expr
-  typ' <- assertTypClosed typ
+  expr' <- assertClosedExpr expr
+  typ' <- assertClosedTyp typ
   typGot <- assertEither $ typeOf expr'
   typGot `shouldBe` typ'
 
+hasTypeP :: Text -> Text -> Expectation
+hasTypeP exprText typeText = do
+  expr <- assertParseExpr exprText
+  typ <- assertParseType typeText
+  expr `hasType` typ
+
 main :: IO ()
-main = hspec $
-  describe "type checking" $ do
-    let idUnit = lam 'a' TUnit (Var 'a')
-        idPoly = forall 'x' (lam 'a' (TVar 'x') $ Var 'a')
+main = hspec $ do
+  describe "embedded expression type checking" $ do
+    let idUnit = lam "a" TUnit (Var "a")
+        idPoly = forall "x" (lam "a" (TVar "x") $ Var "a")
         idPolyT = TForall (TArr (TVar (Bound ())) (TVar (Bound ())))
     it "unit" $
       Unit `hasType` TUnit
@@ -42,9 +68,36 @@ main = hspec $
       idPoly `hasType` idPolyT
     it "polymorphic identity instantiated" $
       TApp idPoly TUnit `hasType` TArr TUnit TUnit
-
--- assertParse :: Parser a -> Text -> IO a
--- assertParse p t = assertEitherWith errorBundlePretty $ parse p "" t
+  describe "parse tests" $ do
+    it "unit" $
+      "()" `parsesToTyp` TUnit
+    it "var" $
+      "x" `parsesToTyp` TVar "x"
+    it "arrow" $
+      "x -> y" `parsesToTyp` TArr (TVar "x") (TVar "y")
+    it "arrow arrow" $
+      "x -> y -> z" `parsesToTyp` TArr (TVar "x") (TArr (TVar "y") (TVar "z"))
+    it "arrow arrow arrow arrow" $
+      "(x -> y) -> x -> y -> z" `parsesToTyp` TArr (TArr (TVar "x") (TVar "y")) (TArr (TVar "x") (TArr (TVar "y") (TVar "z")))
+    it "poly" $
+      "∀ x. x" `parsesToTyp` TForall (TVar (Bound ()))
+    it "const" $
+      "∀ x. (∀ y. x)" `parsesToTyp` TForall (TForall (TVar (Free (Bound ()))))
+    it "const, multi-arg" $
+      "∀ x y. x" `parsesToTyp` TForall (TForall (TVar (Free (Bound ()))))
+  describe "parsed type checking" $ do
+    it "unit" $
+      "()" `hasTypeP` "()"
+    it "monomorphic identity" $
+      "λ (x:()). x" `hasTypeP` "() -> ()"
+    it "arrow applied" $
+      "(λ (x:()). x) ()" `hasTypeP` "()"
+    it "polymorphic identity" $
+      "Λ X. λ (x:X). x" `hasTypeP` "∀ Y. Y -> Y"
+    it "polymorphic const" $
+      "Λ X Y. λ (x:X) (y:Y). x" `hasTypeP` "∀ X Y. X -> Y -> X"
+    it "polymorphic identity instantiated" $
+      "(Λ X. λ (x:X). x) @()" `hasTypeP` "() -> ()"
 
 -- assertEval :: Expr () Ident -> IO Value
 -- assertEval = assertEitherWith (mappend "evaluation error: ") . eval

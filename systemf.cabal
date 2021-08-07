@@ -34,10 +34,10 @@ library
   hs-source-dirs:  src
   exposed-modules:
     Expr
+    Parse
     TypeCheck
 
   -- Eval
-  -- Parse
   build-depends:
     , containers
     , megaparsec
