@@ -7,6 +7,7 @@ import Control.Monad
 import Data.Bifunctor
 import Data.Functor.Identity
 import Lens.Micro.Platform
+import Rebound
 
 data Atom
   = AInt Int
@@ -16,9 +17,9 @@ data Atom
 data Expr t v
   = Var v
   | Unit
-  | Lam (Type t) (Expr t (Maybe v))
+  | Lam (Type t) (Expr t (Bind () v))
   | App (Expr t v) (Expr t v)
-  | TLam (Expr (Maybe t) v)
+  | TLam (Expr (Bind () t) v)
   | TApp (Expr t v) (Type t)
   deriving (Eq, Show, Functor, Foldable, Traversable)
 
@@ -26,7 +27,7 @@ data Type t
   = TVar t
   | TUnit
   | TArr (Type t) (Type t)
-  | TForall (Type (Maybe t))
+  | TForall (Type (Bind () t))
   deriving (Eq, Show, Functor, Foldable, Traversable)
 
 instance Applicative Type where
@@ -62,13 +63,8 @@ exprT ft fv = go
 exprTypes :: Traversal (Expr t v) (Expr t' v) t t'
 exprTypes f = exprT f pure
 
-cap :: Eq a => a -> a -> Maybe a
-cap a s -- s for scrutinee
-  | a == s = Nothing
-  | otherwise = Just s
-
 lam :: Eq v => v -> Type t -> Expr t v -> Expr t v
-lam v t body = Lam t (fmap (cap v) body)
+lam v t = Lam t . abstract1 v
 
-tlam :: Eq t => t -> Expr t v -> Expr t v
-tlam t = TLam . over exprTypes (cap t)
+forall :: Eq t => t -> Expr t v -> Expr t v
+forall t = TLam . abstract1Over exprTypes t

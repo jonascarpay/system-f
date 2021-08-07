@@ -3,3 +3,9 @@ packages:
 
 package systemf
   tests: True
+
+source-repository-package
+    type: git
+    location: https://github.com/jonascarpay/rebound.git
+    tag: 0ef4227a9421d4cff53112261d5e0b42eb788f98
+    --sha256: sha256-+nuzbsh7S5Em7KwqVXgI9d0DBZuUa7kYJJplpvmamzM=

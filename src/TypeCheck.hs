@@ -4,26 +4,17 @@
 
 module TypeCheck where
 
-import Control.Applicative
 import Control.Monad
 import Data.Bifunctor
-import Data.Bool
-import Data.Functor.Identity
-import Data.List.NonEmpty (NonEmpty)
-import Data.Maybe
 import Data.Void
 import Expr
-import Lens.Micro.Platform
-import Validation
+import Rebound
 
-closeV :: Expr t v -> Either (NonEmpty v) (Expr t v')
-closeV = validationToEither . exprT pure failure
+closeV :: Show v => Expr t v -> Either String (Expr t v')
+closeV = first (mappend "unbound variables: " . show) . closedOver traverse
 
-closeT :: Expr t v -> Either (NonEmpty t) (Expr t' v)
-closeT = validationToEither . exprT failure pure
-
-tid :: Expr Char Char
-tid = tlam 'a' $ lam 'x' (TVar 'a') $ Var 'x'
+closeT :: Show t => Expr t v -> Either String (Expr t' v)
+closeT = first (mappend "unbound type variables: " . show) . closedOver exprTypes
 
 typeOf :: Expr Void Void -> Either String (Type Void)
 typeOf = go . bimap absurd absurd
@@ -32,7 +23,7 @@ typeOf = go . bimap absurd absurd
     go (Var v) = pure v
     go Unit = pure TUnit
     go (Lam t b) = do
-      tb <- go $ fmap (fromMaybe t) b
+      tb <- go $ instantiate1 t b
       pure $ TArr t tb
     go (App f x) =
       go f >>= \case
@@ -42,9 +33,9 @@ typeOf = go . bimap absurd absurd
           pure ty
         _ -> Left "straight booboo"
     go (TLam b) = do
-      tb <- go $ (fmap . fmap) Just b
+      tb <- go $ (fmap . fmap) Free b
       pure $ TForall tb
     go (TApp b t) =
       go b >>= \case
-        TForall tb -> pure $ tb >>= maybe t TVar
+        TForall tb -> pure $ tb >>= unbind (const t) TVar
         _ -> Left "that's a nono"
