@@ -1,7 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 import Control.Monad
 import Data.Text (Text)
+import Data.Void
 import Expr
 import Parse
 import Rebound
@@ -43,7 +45,7 @@ hasType :: Expr Ident Ident -> Type Ident -> Expectation
 hasType expr typ = do
   expr' <- assertClosedExpr expr
   typ' <- assertClosedTyp typ
-  typGot <- assertEither $ typeOf expr'
+  typGot :: Type Void <- assertEither $ typeOf expr'
   typGot `shouldBe` typ'
 
 hasTypeP :: Text -> Text -> Expectation
