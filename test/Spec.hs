@@ -1,10 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 import Control.Monad
+import Data.Foldable (toList)
 import Data.Text (Text)
 import Data.Void
 import Expr
+import Lens.Micro.Platform
 import Parse
 import Rebound
 import Test.HUnit (assertFailure)
@@ -18,11 +21,14 @@ assertEither = assertEitherWith id
 assertEitherWith :: (err -> String) -> Either err a -> IO a
 assertEitherWith f = either (assertFailure . f) pure
 
+assertClosedOver :: Show a => Traversal s t a b -> s -> IO t
+assertClosedOver t = assertEitherWith (mappend "Unbound variables: " . show . toList) . closedOver t
+
 assertClosedExpr :: (Show t, Show v) => Expr t v -> IO (Expr t' v')
-assertClosedExpr = assertEither . closeV >=> assertEither . closeT
+assertClosedExpr = assertClosedOver exprTypes >=> assertClosedOver traverse
 
 assertClosedTyp :: Show t => Type t -> IO (Type t')
-assertClosedTyp = assertEitherWith (mappend "unbound type variables in expected type: " . show) . closed
+assertClosedTyp = assertClosedOver traverse
 
 assertParse :: Parser a -> Text -> IO a
 assertParse p text = assertEitherWith errorBundlePretty $ parse p "" text

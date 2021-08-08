@@ -5,15 +5,8 @@
 module TypeCheck where
 
 import Control.Monad
-import Data.Bifunctor
 import Expr
 import Rebound
-
-closeV :: Show v => Expr t v -> Either String (Expr t v')
-closeV = first (mappend "unbound variables: " . show) . closedOver traverse
-
-closeT :: Show t => Expr t v -> Either String (Expr t' v)
-closeT = first (mappend "unbound type variables: " . show) . closedOver exprTypes
 
 typeOf :: Eq t => Expr t (Type t) -> Either String (Type t)
 typeOf (Var v) = pure v
