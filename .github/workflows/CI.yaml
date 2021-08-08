@@ -20,45 +20,10 @@ jobs:
         with:
           name: jmc
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
-      - name: Build systemf
-        run: nix build -L
-      # TODO `nix flake check` is currently system-dependent but should be used here
       - name: Build systemf checks
         run: nix build -L '.#checks.x86_64-linux."systemf:test:systemf-test"'
       - name: Build systemf shell
         run: nix build -L '.#devShell.x86_64-linux'
-
-  stack-build:
-    name: Stack ${{ matrix.resolver }} on ${{ matrix.os }} (${{ matrix.required }})
-    strategy:
-      fail-fast: false
-      matrix:
-        resolver: [ nightly, lts-18, lts-17, lts-16, lts-15, lts-14 ]
-        os: [ macos-latest, ubuntu-latest ]
-        required: [ required ]
-        # include:
-        #   - resolver: nightly
-        #     os: ubuntu-latest
-        #     required: optional
-    continue-on-error: ${{ matrix.required == 'optional' }}
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v2
-      - uses: haskell/actions/setup@v1
-        with:
-          enable-stack: true
-      ## For some reason, stack caching seems to be very brittle, and cause a lot of build failures.
-      ## I haven't investigated very thoroughly what to best do about this, but for now, I'm just not caching stack builds.
-      # - uses: actions/cache@v2
-      #   with:
-      #     path: |
-      #       ~/.stack
-      #       .stack-work
-      #     key: stack-cache-${{ matrix.os }}-${{ matrix.resolver }}-${{ hashFiles('**/*.cabal') }}
-      - run: stack init --resolver ${{ matrix.resolver }}
-      - run: stack build --resolver ${{ matrix.resolver }} --only-dependencies
-      - run: stack build --resolver ${{ matrix.resolver }}
-      - run: stack build --resolver ${{ matrix.resolver }} --haddock --test --bench --no-run-benchmarks
 
   cabal-build:
     name: Cabal GHC ${{ matrix.ghc }} on ${{ matrix.os }} (${{ matrix.required }})

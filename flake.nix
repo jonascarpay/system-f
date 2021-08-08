@@ -42,6 +42,6 @@
         };
         flake = pkgs.hsPkgs.flake { };
       in
-      flake // { defaultPackage = flake.packages."systemf:exe:systemf-exe"; }
+      flake
     );
 }
