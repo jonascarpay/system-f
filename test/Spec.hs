@@ -103,9 +103,17 @@ main = hspec $ do
     it "polymorphic identity" $
       "Λ X. λ (x:X). x" `hasTypeP` "∀ Y. Y -> Y"
     it "polymorphic const" $
-      "Λ X Y. λ (x:X) (y:Y). x" `hasTypeP` "∀ X Y. X -> Y -> X"
-    it "polymorphic identity instantiated" $
+      "Λ X Y. λ (x:X) (y:Y). x" `hasTypeP` "∀ A B. A -> B -> A"
+    it "polymorphic identity instantiated with ()" $
       "(Λ X. λ (x:X). x) @()" `hasTypeP` "() -> ()"
+    it "polymorphic identity instantiated with higher order type" $
+      "(Λ X. λ (x:X). x) @(∀ x y. x -> y)" `hasTypeP` "(∀ a b. a -> b) -> (∀ c d. c -> d)"
+    it "Rank N identity" $
+      "λ (x: ∀ x. x -> x). x" `hasTypeP` "(∀ a. a -> a) -> (∀ b. b -> b)"
+    it "two" $
+      "Λ X. λ (f: X -> X) (x: X). f (f x)" `hasTypeP` "∀ X. (X -> X) -> X -> X"
+    it "plus" $
+      "Λ X. λ (l: (X -> X) -> X -> X) (r: (X -> X) -> X -> X) (succ: X -> X) (z: X). l succ (r succ z)" `hasTypeP` "∀ X. ((X -> X) -> X -> X) -> ((X -> X) -> X -> X) -> ((X -> X) -> X -> X)"
 
 -- assertEval :: Expr () Ident -> IO Value
 -- assertEval = assertEitherWith (mappend "evaluation error: ") . eval
