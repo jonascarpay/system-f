@@ -111,9 +111,17 @@ main = hspec $ do
     it "Rank N identity" $
       "λ (x: ∀ x. x -> x). x" `hasTypeP` "(∀ a. a -> a) -> (∀ b. b -> b)"
     it "two" $
-      "Λ X. λ (f: X -> X) (x: X). f (f x)" `hasTypeP` "∀ X. (X -> X) -> X -> X"
+      hasTypeP
+        "Λ X. λ (f: X -> X) (x: X). f (f x)"
+        "∀ X. (X -> X) -> X -> X"
     it "plus" $
-      "Λ X. λ (l: (X -> X) -> X -> X) (r: (X -> X) -> X -> X) (succ: X -> X) (z: X). l succ (r succ z)" `hasTypeP` "∀ X. ((X -> X) -> X -> X) -> ((X -> X) -> X -> X) -> ((X -> X) -> X -> X)"
+      hasTypeP
+        "Λ X. λ (l: (X -> X) -> X -> X) (r: (X -> X) -> X -> X) (succ: X -> X) (z: X). l succ (r succ z)"
+        "∀ X. ((X -> X) -> X -> X) -> ((X -> X) -> X -> X) -> ((X -> X) -> X -> X)"
+    fit "plus++" $
+      hasTypeP
+        "λ (l: ∀ X. (X -> X) -> X -> X) (r: ∀ X. (X -> X) -> X -> X). Λ X. λ (succ: X -> X) (z: X). l @X succ (r @X succ z)"
+        "(∀ X. (X -> X) -> X -> X) -> (∀ X. (X -> X) -> X -> X) -> (∀ X. (X -> X) -> X -> X)"
 
 -- assertEval :: Expr () Ident -> IO Value
 -- assertEval = assertEitherWith (mappend "evaluation error: ") . eval
